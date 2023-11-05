@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  postgres_user_manager:
+    image: postgres:12
+    ports:
+      - 5432:5432
+    networks:
+      - user_manager_net
+    environment:
+      POSTGRES_USER: usermanageruser
+      POSTGRES_PASSWORD: usermanagerpass
+      POSTGRES_DB: dbase_user_manager
+    command: [ "postgres", "-c", "log_statement=all" ]
+
+  postgres_messenger:
+    image: postgres:12
+    ports:
+      - 5434:5432
+    networks:
+      - messenger_net
+    environment:
+      POSTGRES_USER: messengeruser
+      POSTGRES_PASSWORD: messengerpass
+      POSTGRES_DB: dbase_messenger
+    command: [ "postgres", "-c", "log_statement=all" ]
+
+  redis_master:
+    image: bitnami/redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - redis_net
+    environment:
+      REDIS_PASSWORD: pass
+      REDIS_REPLICATION_MODE: master
+
+  redis_slave:
+    image: bitnami/redis:latest
+    ports:
+      - 6380:6380
+    networks:
+      - redis_net
+    depends_on:
+      - redis_master
+    environment:
+      REDIS_REPLICATION_MODE: slave
+      REDIS_MASTER_HOST: redis_master
+      REDIS_MASTER_PASSWORD: pass
+      REDIS_PASSWORD: pass
+
+  redis_sentinel:
+    image: bitnami/redis-sentinel:latest
+    ports:
+      - 26379:26379
+    networks:
+      - redis_net
+    depends_on:
+      - redis_master
+      - redis_slave
+    environment:
+      REDIS_MASTER_PASSWORD: pass
+      REDIS_MASTER_HOST: localhost
+      REDIS_MASTER_SET: my_master_node
+
+networks:
+  user_manager_net:
+  messenger_net:
+  redis_net:
